@@ -55,11 +55,31 @@ fn main() {
         }
     }
 
-    let tool = base_config.get_compiler();
-    if tool.is_like_msvc() {
-        base_config.flag("/std:c++14").flag("/wd4100");
-    } else if tool.is_like_clang() || tool.is_like_gnu() {
-        base_config.flag("-std=c++11").flag("-Wno-unused-parameter");
+    let target_os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS");
+    let target_feature = env::var("CARGO_CFG_TARGET_FEATURE");
+    if target_os.starts_with("wasi") {
+        let wasi_sdk = env::var("WASI_SDK").unwrap_or_else(|_| "/opt/wasi-sdk".to_owned());
+        assert!(std::path::Path::new(&wasi_sdk).exists(), "WASI SDK not found at {}", wasi_sdk);
+        base_config
+            .std("c++17")
+            .compiler(format!("{wasi_sdk}/bin/clang++"))
+            //.flag("-fno-exceptions")
+            .cpp_set_stdlib("c++");
+        let wasi_sysroot_lib = match target_feature {
+            Ok(target_feature) if target_feature.contains("atomics") => {
+                "wasm32-wasi-threads"
+            }
+            _ => "wasm32-wasi",
+        };
+        println!("cargo:rustc-link-search={wasi_sdk}/share/wasi-sysroot/lib/{wasi_sysroot_lib}");
+        println!("cargo:rustc-link-lib=c++abi");
+    } else {
+        let tool = base_config.get_compiler();
+        if tool.is_like_msvc() {
+            base_config.flag("/std:c++14").flag("/wd4100");
+        } else if tool.is_like_clang() || tool.is_like_gnu() {
+            base_config.flag("-std=c++11").flag("-Wno-unused-parameter");
+        }
     }
 
     if target.contains("windows") {
