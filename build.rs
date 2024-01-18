@@ -63,10 +63,12 @@ fn main() {
         base_config
             .std("c++17")
             .compiler(format!("{wasi_sdk}/bin/clang++"))
-            //.flag("-fno-exceptions")
             .cpp_set_stdlib("c++");
         let wasi_sysroot_lib = match target_feature {
             Ok(target_feature) if target_feature.contains("atomics") => {
+                base_config
+                    .flag("-matomics")
+                    .flag("-mbulk-memory");
                 "wasm32-wasi-threads"
             }
             _ => "wasm32-wasi",
