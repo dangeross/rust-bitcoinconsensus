@@ -75,7 +75,6 @@ fn main() {
         assert!(std::path::Path::new(&wasi_sdk).exists(), "WASI SDK not found at {}", wasi_sdk);
         consensus_config
             .std("c++17")
-            .compiler(format!("{wasi_sdk}/bin/clang++"))
             .cpp_set_stdlib("c++");
         let wasi_sysroot_lib = match target_feature {
             Ok(target_feature) if target_feature.contains("atomics") => {
